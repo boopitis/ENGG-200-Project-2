@@ -1,8 +1,10 @@
 from machine import Pin
+from neopixel import Neopixel
 import machine, neopixel
 import urequests
 import time
 import network
+import json
 
 ssid = 'airuc-guest' # This should be ‘airuc-guest’ on campus Wi-Fi
 password = ''
@@ -24,17 +26,74 @@ except KeyboardInterrupt:
     
 print('Connected. End of code.')
 
-r = urequests.get("https://api.dictionaryapi.dev/api/v2/entries/en/university")
+# r = urequests.get("https://api.dictionaryapi.dev/api/v2/entries/en/university")
+    
+f = open('data.json')
 
-data = r.json()
+data = json.load(f)
 
 # Most APIs will return JSON, which acts like a Python dictionary
 
-for all in data:
-    print(all)
+data_dict = {}
 
-# for i, v in enumerate(data['hourly']['time']):
-#    print(f'{i}. {v}')
+for index, date_time in enumerate(data['hourly']['time']):
+    data_dict[date_time] = data['hourly']['temperature_2m'][index]
+
+print(data_dict)
+
+max_temp = -100;
+max_temp_index = -1;
+min_temp = 100;
+min_temp_index = -1;
+for index, temp in enumerate(data['hourly']['temperature_2m']):
+    if temp > max_temp:
+        max_temp = temp;
+        max_temp_index = index;
+        
+    if temp < min_temp:
+        min_temp = temp;
+        min_temp_index = index;
+
+print(max_temp)
+print(min_temp)
+
+temp_diff = max_temp - min_temp
+
+print(temp_diff)
+
+numpix = 30
+strip = Neopixel(numpix, 0 , 0, "RGB")
+
+offset = 0;
+while True:
+    for i in range(30):
+        if offset < (164 - i):
+            j = i + offset
+        else:
+            j = i + offset - 164
+            
+        scale = (data['hourly']['temperature_2m'][j] + abs(min_temp)) / temp_diff
+            
+        if scale <= (1/6):
+            strip.set_pixel(i, (255 * scale, 255, 0))
+        elif scale <= (2/6):
+            strip.set_pixel(i, (255, 255 * (1 - scale), 0))
+        elif scale <= (3/6):
+            strip.set_pixel(i, (255, 0, 255 * scale))
+        elif scale <= (4/6):
+            strip.set_pixel(i, (255 * (1 - scale), 0, 255))
+        elif scale <= (5/6):
+            strip.set_pixel(i, (0, 255 * scale, 255))
+        else:
+            strip.set_pixel(i, (0, 255, 255 * (1 - scale)))
+    
+    strip.show()
+    time.sleep(0.5)
+    print(offset)
+    if offset < 164:
+        offset += 1
+    else:
+        offset = 0
 
 # We need to close the response so that the Pi Pico does not crash
-r.close()
+# r.close()
