@@ -26,7 +26,7 @@ except KeyboardInterrupt:
     
 print('Connected. End of code.')
 
-# r = urequests.get("https://api.dictionaryapi.dev/api/v2/entries/en/university")
+# r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
     
 f = open('data.json')
 
@@ -74,23 +74,21 @@ while True:
             
         scale = (data['hourly']['temperature_2m'][j] + abs(min_temp)) / temp_diff
             
-        if scale <= (1/6):
-            strip.set_pixel(i, (255 * scale, 255, 0))
-        elif scale <= (2/6):
-            strip.set_pixel(i, (255, 255 * (1 - scale), 0))
-        elif scale <= (3/6):
-            strip.set_pixel(i, (255, 0, 255 * scale))
-        elif scale <= (4/6):
-            strip.set_pixel(i, (255 * (1 - scale), 0, 255))
-        elif scale <= (5/6):
-            strip.set_pixel(i, (0, 255 * scale, 255))
+        if scale <= (1/5):
+            strip.set_pixel(i, (0, 255 * (1 - scale), 255))
+        elif scale <= (2/5):
+            strip.set_pixel(i, (255 * scale, 0, 255))
+        elif scale <= (3/5):
+            strip.set_pixel(i, (255, 0, 255 * (1 - scale)))
+        elif scale <= (4/5):
+            strip.set_pixel(i, (255, 255 * scale, 0))
         else:
-            strip.set_pixel(i, (0, 255, 255 * (1 - scale)))
+            strip.set_pixel(i, (255 * (1 - scale), 255, 0))
     
     strip.show()
-    time.sleep(0.5)
+    time.sleep(0.1)
     print(offset)
-    if offset < 164:
+    if offset < 163:
         offset += 1
     else:
         offset = 0
