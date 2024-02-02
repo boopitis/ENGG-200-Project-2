@@ -23,8 +23,11 @@ strip.brightness(10)
 
 # initialize potentiometer
 adc = ADC(Pin(26))
-    
-# r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
+
+latitude = 51.04
+longitude = -114.07
+url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
+# r = urequests.get(url)
     
 f = open('data.json')
 
@@ -59,10 +62,15 @@ temp_diff = max_temp - min_temp
 
 print(temp_diff)
 
-def show_temp():
+# Potentiometer Stats
+pot_max = 65535
+
+def show_lcd():
     lcd.clear()
     lcd.move_to(0,0)
     lcd.putstr(f'Temp: {data['hourly']['temperature_2m'][j]}')
+    lcd.move_to(0,1)
+    lcd.putstr(f'Latitude: {latitude}')
 
 offset = 0
 while True:
@@ -86,9 +94,10 @@ while True:
             strip.set_pixel(i, (255 * (1 - scale), 255, 0))
     strip.show()
     
-    show_temp()
+    show_lcd()
     
-    print(adc.read_u16())
+    latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
+    print(f'latitude: {latitude}')
     
     # print(offset)
     if offset < 163:
