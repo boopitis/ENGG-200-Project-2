@@ -6,6 +6,7 @@ import machine, neopixel
 import urequests
 import time
 import network
+import json
     
 # initialize LCD
 I2C_ADDR     = 63
@@ -40,20 +41,24 @@ def connect(ssid, wait, password=0):
         time.sleep(1)
 
 try:
-    connect('airuc-guest', 1)
+    connect('airuc-guest', 10)
 except KeyboardInterrupt:
     machine.reset()
 
 if network.WLAN(network.STA_IF).isconnected() == False:
     try:
-        connect('HoopCafeMain', 10, 'Glynster73')
+        connect('HoopCafeMain', 0, 'Glynster73')
     except KeyboardInterrupt:
         machine.reset()
     
 print('Connected. End of code.')
 
-r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
+latitude = 51.04
+longitude = -114.07
+URL = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
+r = urequests.get(URL)
 
+print(r.text)
 data = r.json()
 
 # Most APIs will return JSON, which acts like a Python dictionary
@@ -88,11 +93,13 @@ print(temp_diff)
 # Potentiometer Stats
 pot_max = 65535
 
-def show_temp():
+def show_lcd():
     lcd.clear()
     lcd.move_to(0,0)
-    lcd.putstr(f'Temp: {data['hourly']['temperature_2m'][j]}')
-
+    lcd.putstr(f'Temp: {temp}')
+    lcd.move_to(0,1)
+    lcd.putstr(f'{date} {date_time}')
+    
 offset = 0
 while True:
     for i in range(30):
@@ -117,7 +124,11 @@ while True:
     
     show_temp()
     
-    print(adc.read_u16() / pot_max)
+    temp = data['hourly']['temperature_2m'][j]
+    date = data['hourly']['time'][j][5:10]
+    date_time = data['hourly']['time'][j][11:]
+    latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
+    show_lcd()
     
     # print(offset)
     if offset < 163:
