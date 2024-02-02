@@ -41,18 +41,18 @@ for index, date_time in enumerate(data['hourly']['time']):
 
 print(data_dict)
 
-max_temp = -100;
-max_temp_index = -1;
-min_temp = 100;
-min_temp_index = -1;
+max_temp = -100
+max_temp_index = -1
+min_temp = 100
+min_temp_index = -1
 for index, temp in enumerate(data['hourly']['temperature_2m']):
     if temp > max_temp:
-        max_temp = temp;
-        max_temp_index = index;
+        max_temp = temp
+        max_temp_index = index
         
     if temp < min_temp:
-        min_temp = temp;
-        min_temp_index = index;
+        min_temp = temp
+        min_temp_index = index
 
 print(max_temp)
 print(min_temp)
@@ -64,7 +64,7 @@ print(temp_diff)
 numpix = 30
 strip = Neopixel(numpix, 0 , 0, "RGB")
 
-offset = 0;
+offset = 0
 while True:
     for i in range(30):
         if offset < (164 - i):
