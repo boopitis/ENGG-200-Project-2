@@ -1,36 +1,61 @@
-from machine import Pin
+from machine import Pin, I2C
 from neopixel import Neopixel
+from lcd_api import LcdApi
+from pico_i2c_lcd import I2cLcd
 import machine, neopixel
 import urequests
 import time
 import network
 import json
+import utime
 
-ssid = 'airuc-guest' # This should be ‘airuc-guest’ on campus Wi-Fi
-password = ''
+def initialize():
+    
+    # initialize LCD
+    I2C_ADDR     = 63
+    I2C_NUM_ROWS = 2
+    I2C_NUM_COLS = 16
 
-def connect():
+    i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
+    lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
+
+    # initialize LED
+    numpix = 30
+    strip = Neopixel(numpix, 0 , 4, "RGB")
+    strip.brightness(10)
+
+def connect(ssid, wait, password=0):
     # Connect to WLAN
     # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    wlan.connect(ssid) # Remove password if using airuc-guest
+    if password == 0:
+        wlan.connect(ssid)
+    else:
+        wlan.connect(ssid, password) # Remove password if using airuc-guest
     
-    while wlan.isconnected() == False:
-        print('Waiting for connection...')
+    count = 0
+    while wlan.isconnected() == False and count < wait:
+        print(f'Waiting for connection to {ssid}')
+        count += 1
         time.sleep(1)
+
 try:
-    connect()
+    connect('airuc-guest', 1)
 except KeyboardInterrupt:
     machine.reset()
+
+if network.WLAN(network.STA_IF).isconnected() == False:
+    try:
+        connect('HoopCafeMain', 100, 'Glynster73')
+    except KeyboardInterrupt:
+        machine.reset()
     
 print('Connected. End of code.')
 
-# r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
-    
-f = open('data.json')
+r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
 
-data = json.load(f)
+data = r.json()
 
 # Most APIs will return JSON, which acts like a Python dictionary
 
@@ -61,11 +86,11 @@ temp_diff = max_temp - min_temp
 
 print(temp_diff)
 
-numpix = 30
-strip = Neopixel(numpix, 0 , 0, "RGB")
+initialize()
 
 offset = 0
 while True:
+    
     for i in range(30):
         if offset < (164 - i):
             j = i + offset
@@ -84,6 +109,10 @@ while True:
             strip.set_pixel(i, (255, 255 * scale, 0))
         else:
             strip.set_pixel(i, (255 * (1 - scale), 255, 0))
+    
+    lcd.clear()
+    lcd.move_to(5,0)
+    lcd.putstr(f"Temperature: {data['hourly']['temperature_2m']}")
     
     strip.show()
     time.sleep(0.1)
