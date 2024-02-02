@@ -46,7 +46,7 @@ except KeyboardInterrupt:
 
 if network.WLAN(network.STA_IF).isconnected() == False:
     try:
-        connect('HoopCafeMain', 10, 'Glynster73')
+        connect('Toast', 10, '6bh5bmrc3s')
     except KeyboardInterrupt:
         machine.reset()
     
