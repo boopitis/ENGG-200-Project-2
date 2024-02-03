@@ -2,13 +2,27 @@ from machine import Pin, I2C, ADC
 from neopixel import Neopixel
 from lcd_api import LcdApi
 from pico_i2c_lcd import I2cLcd
-import machine, neopixel
+import neopixel
 import urequests
 import time
-import network
+# import network
 import json
 
-# def connect()
+# def connect(ssid, wait, password=0):
+#     # Connect to WLAN
+#     # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
+#     wlan = network.WLAN(network.STA_IF)
+#     wlan.active(True)
+#     if password == 0:
+#         wlan.connect(ssid)
+#     else:
+#         wlan.connect(ssid, password) # Remove password if using airuc-guest
+#     
+#     count = 0
+#     while wlan.isconnected() == False and count < wait:
+#         print(f'Waiting for connection to {ssid}')
+#         count += 1
+#         time.sleep(1)
 
 # initialize LCD
 I2C_ADDR     = 63
@@ -32,15 +46,6 @@ gre_led = Pin(17, Pin.OUT)
 # initialize potentiometer
 adc = ADC(Pin(26))
 pot_max = 65535
-
-# initialize data
-latitude = 51.04
-longitude = -114.07
-url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
-# r = urequests.get(url)
-# data = r.json()
-f = open('data.json')
-data = json.load(f)
 
 cur_option = 0
 def menu():
@@ -98,17 +103,6 @@ def update_data():
     # url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
     # r = urequests.get(url)
     # data = r.json()
-    
-    max_temp = -100
-    min_temp = 100
-    for temp in data['hourly']['temperature_2m']:
-        if temp > max_temp:
-            max_temp = temp
-            
-        if temp < min_temp:
-            min_temp = temp
-
-    temp_diff = max_temp - min_temp
     
 def get_scale(parameter):
     max_value = data['hourly'][parameter][0]
@@ -173,6 +167,25 @@ def view_temp():
             offset = 0
             
         time.sleep(0.5)
+        
+# initialize data
+latitude = 51.04
+longitude = -114.07
+url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
+# r = urequests.get(url)
+# data = r.json()
+f = open('data.json')
+data = json.load(f)
+        
+try:
+    connect('HoopCafeMain', 10, 'Glynster73')
+except KeyboardInterrupt:
+    machine.reset()
+
+if network.WLAN(network.STA_IF).isconnected() == False:
+    exit()
+else:
+    print('Connected. End of code.')
 
 # while True:
 #     menu()
