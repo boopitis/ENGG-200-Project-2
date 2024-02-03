@@ -42,28 +42,6 @@ url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &lo
 f = open('data.json')
 data = json.load(f)
 
-max_temp = -100
-min_temp = 100
-for temp in data['hourly']['temperature_2m']:
-    if temp > max_temp:
-        max_temp = temp
-            
-    if temp < min_temp:
-        min_temp = temp
-
-temp_diff = max_temp - min_temp
-
-print(max_temp)
-print(min_temp)
-print(temp_diff)
-
-def show_temp_datetime():
-    lcd.clear()
-    lcd.move_to(0,0)
-    lcd.putstr(f'Temp: {temp}')
-    lcd.move_to(0,1)
-    lcd.putstr(f'{date} {date_time}')
-
 cur_option = 0
 def menu():
     num_options = 4
@@ -95,13 +73,13 @@ def menu():
         
     return option
 
-def show_small_leds():
+def show_small_leds(weather_code):
     if weather_code in (0, 1):
         red_led.on()
     else:
         red_led.off()
         
-    if weather_code in (2, 3):
+    if weather_code in (2, 3) or 40 <= weather_code < 50:
         yel_led.on()
     else:
         yel_led.off()
@@ -112,9 +90,9 @@ def show_small_leds():
         blu_led.off()
         
     if 70 <= weather_code < 80 or weather_code in (83, 84, 85, 86, 87, 88, 89, 90, 93, 94, 97, 99):
-        yel_led.on()
+        gre_led.on()
     else:
-        yel_led.off()
+        gre_led.off()
         
 def update_data():
     # url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
@@ -131,53 +109,77 @@ def update_data():
             min_temp = temp
 
     temp_diff = max_temp - min_temp
+    
+def get_scale(parameter):
+    max_value = data['hourly'][parameter][0]
+    min_value = data['hourly'][parameter][0]
+    for value in data['hourly'][parameter]:
+        if value > max_value:
+            max_value = value
+            
+        if value < min_value:
+            min_value = value
+
+    value_diff = max_value - min_value
+    
+    return (min_value, value_diff)
+
+def view_temp():
+    min_temp = get_scale('temperature_2m')[0]
+    temp_diff = get_scale('temperature_2m')[1]
+    
+    offset = 0
+    while True:
+        for i in range(30):
+            if offset < (164 - i):
+                j = i + offset
+            else:
+                j = i + offset - 164
+                
+            scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
+            
+            if scale <= (1/5):
+                strip.set_pixel(i, (0, 255 * (1 - scale), 255))
+            elif scale <= (2/5):
+                strip.set_pixel(i, (255 * scale, 0, 255))
+            elif scale <= (3/5):
+                strip.set_pixel(i, (255, 0, 255 * (1 - scale)))
+            elif scale <= (4/5):
+                strip.set_pixel(i, (255, 255 * scale, 0))
+            else:
+                strip.set_pixel(i, (255 * (1 - scale), 255, 0))
+        strip.show()
+        
+        temp = data['hourly']['temperature_2m'][j]
+        date = data['hourly']['time'][j][5:10]
+        date_time = data['hourly']['time'][j][11:]
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'Temp: {temp}')
+        lcd.move_to(0,1)
+        lcd.putstr(f'{date} {date_time}')
+        
+        latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
+        
+        weather_code = data['hourly']['weather_code'][j]
+        print(weather_code)
+        show_small_leds(weather_code)
+        
+        
+        # print(offset)
+        if offset < 163:
+            offset += 1
+        else:
+            offset = 0
+            
+        time.sleep(0.5)
 
 # while True:
 #     menu()
 #     cur_option = menu()
 #     time.sleep(0.1)
 
-offset = 0
-while True:
-    for i in range(30):
-        if offset < (164 - i):
-            j = i + offset
-        else:
-            j = i + offset - 164
-            
-        scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
-        
-        if scale <= (1/5):
-            strip.set_pixel(i, (0, 255 * (1 - scale), 255))
-        elif scale <= (2/5):
-            strip.set_pixel(i, (255 * scale, 0, 255))
-        elif scale <= (3/5):
-            strip.set_pixel(i, (255, 0, 255 * (1 - scale)))
-        elif scale <= (4/5):
-            strip.set_pixel(i, (255, 255 * scale, 0))
-        else:
-            strip.set_pixel(i, (255 * (1 - scale), 255, 0))
-    
-    temp = data['hourly']['temperature_2m'][j]
-    date = data['hourly']['time'][j][5:10]
-    date_time = data['hourly']['time'][j][11:]
-    latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
-    
-    weather_code = data['hourly']['weather_code'][j]
-    
-    print(weather_code)
-    show_small_leds()
-    
-    strip.show()
-    show_temp_datetime()
-    
-    # print(offset)
-    if offset < 163:
-        offset += 1
-    else:
-        offset = 0
-        
-    time.sleep(0.5)
+view_temp()
 
 # We need to close the response so that the Pi Pico does not crash
 # r.close()
