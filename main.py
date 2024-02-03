@@ -138,5 +138,4 @@ while True:
         
     time.sleep(0.5)
 
-# We need to close the response so that the Pi Pico does not crash
 r.close()
