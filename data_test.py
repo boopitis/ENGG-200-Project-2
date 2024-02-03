@@ -10,10 +10,24 @@ import json
 
 # def connect()
 
-# initialize LED
+# initialize LCD
+I2C_ADDR     = 63
+I2C_NUM_ROWS = 2
+I2C_NUM_COLS = 16
+
+i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
+lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
+
+# initialize LED strip
 numpix = 30
 strip = Neopixel(numpix, 0 , 4, "RGB")
 strip.brightness(10)
+
+# initialize small LEDs
+red_led = Pin(13, Pin.OUT)
+yel_led = Pin(12, Pin.OUT)
+blu_led = Pin(16, Pin.OUT)
+gre_led = Pin(17, Pin.OUT)
 
 # initialize potentiometer
 adc = ADC(Pin(26))
@@ -80,7 +94,28 @@ def menu():
             lcd.putstr(f'>Exit')
         
     return option
-    
+
+def show_small_leds():
+    if weather_code in (0, 1):
+        red_led.on()
+    else:
+        red_led.off()
+        
+    if weather_code in (2, 3):
+        yel_led.on()
+    else:
+        yel_led.off()
+        
+    if 50 <= weather_code < 70 or weather_code in (80, 81, 82, 87, 88, 89, 90, 91, 92, 95, 96, 97, 98):
+        blu_led.on()
+    else:
+        blu_led.off()
+        
+    if 70 <= weather_code < 80 or weather_code in (83, 84, 85, 86, 87, 88, 89, 90, 93, 94, 97, 99):
+        yel_led.on()
+    else:
+        yel_led.off()
+        
 def update_data():
     # url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
     # r = urequests.get(url)
@@ -97,14 +132,6 @@ def update_data():
 
     temp_diff = max_temp - min_temp
 
-# initialize LCD
-I2C_ADDR     = 63
-I2C_NUM_ROWS = 2
-I2C_NUM_COLS = 16
-
-i2c = I2C(0, sda=machine.Pin(0), scl=machine.Pin(1), freq=400000)
-lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
-
 # while True:
 #     menu()
 #     cur_option = menu()
@@ -119,8 +146,6 @@ while True:
             j = i + offset - 164
             
         scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
-        
-        print(scale)
         
         if scale <= (1/5):
             strip.set_pixel(i, (0, 255 * (1 - scale), 255))
@@ -138,6 +163,11 @@ while True:
     date_time = data['hourly']['time'][j][11:]
     latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
     
+    weather_code = data['hourly']['weather_code'][j]
+    
+    print(weather_code)
+    show_small_leds()
+    
     strip.show()
     show_temp_datetime()
     
@@ -147,7 +177,7 @@ while True:
     else:
         offset = 0
         
-    time.sleep(0.1)
+    time.sleep(0.5)
 
 # We need to close the response so that the Pi Pico does not crash
 # r.close()
