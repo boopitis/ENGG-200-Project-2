@@ -5,24 +5,10 @@ from pico_i2c_lcd import I2cLcd
 import neopixel
 import urequests
 import time
-# import network
+import network
 import json
 
-def connect(ssid, wait, password=0):
-    # Connect to WLAN
-    # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if password == 0:
-        wlan.connect(ssid)
-    else:
-        wlan.connect(ssid, password) # Remove password if using airuc-guest
-    
-    count = 0
-    while wlan.isconnected() == False and count < wait:
-        print(f'Waiting for connection to {ssid}')
-        count += 1
-        time.sleep(1)
+# def connect()
 
 # initialize LCD
 I2C_ADDR     = 63
@@ -47,51 +33,45 @@ gre_led = Pin(17, Pin.OUT)
 adc = ADC(Pin(26))
 pot_max = 65535
 
-# initialize button
-button = Pin(5, Pin.IN, Pin.PULL_DOWN)
-
+# initialize data
 latitude = 51.04
 longitude = -114.07
-
-# try:
-#     connect('HoopCafeMain', 25, 'Glynster73')
-# except KeyboardInterrupt:
-#     machine.reset()
-# 
-# if network.WLAN(network.STA_IF).isconnected() == False:
-#     exit()
-# else:
-#     print('Connected. End of code.')
-#     
-# # initialize data
-# url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
-# print(url)
+url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
 # r = urequests.get(url)
 # data = r.json()
-
 f = open('data.json')
 data = json.load(f)
 
 cur_option = 0
 def menu():
     num_options = 4
+    option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
     
-    while True:
-        option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
-        
-        options = ('Temp/Date', 'Change Lat/Long', 'Weather Code', 'Exit', '')
-        
-        if option != cur_option:
+    if option != cur_option:
+        if option == 1:
             lcd.clear()
             lcd.move_to(0,0)
-            lcd.putstr(f'>{options[option - 1]}')
+            lcd.putstr(f'>View Temp/Date')
             lcd.move_to(0,1)
-            lcd.putstr(f'{options[option]}')
+            lcd.putstr(f'Change Lat/Long')
+        elif option == 2:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>Change Lat/Long')
+            lcd.move_to(0,1)
+            lcd.putstr(f'View Balls')
+        elif option == 3:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>View Balls')
+            lcd.move_to(0,1)
+            lcd.putstr(f'Exit')
+        elif option == 4:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>Exit')
         
-        if button.value():
-            return option
-        
-        cur_option = option
+    return option
 
 def show_small_leds(weather_code):
     if weather_code in (0, 1):
@@ -115,9 +95,20 @@ def show_small_leds(weather_code):
         gre_led.off()
         
 def update_data():
-    url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
-    r = urequests.get(url)
-    data = r.json()
+    # url = "https://api.open-meteo.com/v1/forecast?latitude=" + str(latitude) + " &longitude=" + str(longitude) + " &hourly=temperature_2m&timezone=auto"
+    # r = urequests.get(url)
+    # data = r.json()
+    
+    max_temp = -100
+    min_temp = 100
+    for temp in data['hourly']['temperature_2m']:
+        if temp > max_temp:
+            max_temp = temp
+            
+        if temp < min_temp:
+            min_temp = temp
+
+    temp_diff = max_temp - min_temp
     
 def get_scale(parameter):
     max_value = data['hourly'][parameter][0]
@@ -133,99 +124,62 @@ def get_scale(parameter):
     
     return (min_value, value_diff)
 
-def weather(code):
-    weather = ['Fair', 'Mainly Clear', 'Partly Cloudy', 'Overcast','', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', 'Fog', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', 'Slight Snow Fall', '', 'Moderate Snowfall', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',]
+def view_temp():
+    min_temp = get_scale('temperature_2m')[0]
+    temp_diff = get_scale('temperature_2m')[1]
     
-    return weather[code]
-
-min_temp = get_scale('temperature_2m')[0]
-temp_diff = get_scale('temperature_2m')[1]
-
-offset = 0
-selection = 1
-while True:
-    
-    if button.value():
-        selection = menu()
-    
-    for i in range(30):
-        if offset < (164 - i):
-            j = i + offset
-        else:
-            j = i + offset - 164
+    offset = 0
+    while True:
+        for i in range(30):
+            if offset < (164 - i):
+                j = i + offset
+            else:
+                j = i + offset - 164
+                
+            scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
             
-        scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
+            if scale <= (1/5):
+                strip.set_pixel(i, (0, 255 * (1 - scale), 255))
+            elif scale <= (2/5):
+                strip.set_pixel(i, (255 * scale, 0, 255))
+            elif scale <= (3/5):
+                strip.set_pixel(i, (255, 0, 255 * (1 - scale)))
+            elif scale <= (4/5):
+                strip.set_pixel(i, (255, 255 * scale, 0))
+            else:
+                strip.set_pixel(i, (255 * (1 - scale), 255, 0))
+        strip.show()
         
-        if scale <= (1/5):
-            strip.set_pixel(i, (0, 255 * (1 - scale * 5), 255))
-        elif scale <= (2/5):
-            strip.set_pixel(i, (255 * scale * 5/2, 0, 255))
-        elif scale <= (3/5):
-            strip.set_pixel(i, (255, 0, 255 * (1 - scale * 5/3)))
-        elif scale <= (4/5):
-            strip.set_pixel(i, (255, 255 * scale * 5/4, 0))
-        else:
-            strip.set_pixel(i, (255 * (1 - scale), 255, 0))
-    strip.show()
-    
-    temp = data['hourly']['temperature_2m'][j]
-    date = data['hourly']['time'][j][5:10]
-    date_time = data['hourly']['time'][j][11:]
-    
-    weather_code = data['hourly']['weather_code'][j]
-    show_small_leds(weather_code)
-    
-    if selection == 1:
+        temp = data['hourly']['temperature_2m'][j]
+        date = data['hourly']['time'][j][5:10]
+        date_time = data['hourly']['time'][j][11:]
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'Temp: {temp}')
         lcd.move_to(0,1)
         lcd.putstr(f'{date} {date_time}')
-    elif selection == 2:
-        while True:
-            lcd.clear()
-            lcd.move_to(0,0)
-            lcd.putstr(f'Lat: {latitude}')
-            lcd.move_to(0,1)
-            lcd.putstr(f'Long: {longitude}')
-            latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
-            if button.value():
-                break
-        while True:
-            lcd.clear()
-            lcd.move_to(0,0)
-            lcd.putstr(f'Lat: {latitude}')
-            lcd.move_to(0,1)
-            lcd.putstr(f'Long: {longitude}')
-            longitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
-            if button.value():
-                break
-        update_date()
-    elif selection == 3:
-        lcd.clear()
-        lcd.move_to(0,0)
-        lcd.putstr(f'{weather(weather_code)}')
-    elif selection == 4:
-        lcd.clear()
-        strip.fill((0,0,0))
-        break
         
-    # print(offset)
-    if offset < 163:
-        offset += 1
-    else:
-        offset = 0
+        latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
         
-    time.sleep(0.5)
+        weather_code = data['hourly']['weather_code'][j]
+        print(weather_code)
+        show_small_leds(weather_code)
+        
+        
+        # print(offset)
+        if offset < 163:
+            offset += 1
+        else:
+            offset = 0
+            
+        time.sleep(0.5)
+
+# while True:
+#     menu()
+#     cur_option = menu()
+#     time.sleep(0.1)
+
+view_temp()
 
 # We need to close the response so that the Pi Pico does not crash
 # r.close()
