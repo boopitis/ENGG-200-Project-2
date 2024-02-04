@@ -152,7 +152,7 @@ min_temp = get_scale('temperature_2m')[0]
 temp_diff = get_scale('temperature_2m')[1]
 
 offset = 0
-selection = 3
+selection = 1
 while True:
     
     if button.value():
@@ -163,6 +163,12 @@ while True:
             j = i + offset
         else:
             j = i + offset - 164
+            
+        if i == 0:
+            temp = data['hourly']['temperature_2m'][j]
+            date = data['hourly']['time'][j][5:10]
+            date_time = data['hourly']['time'][j][11:]
+            weather_code = data['hourly']['weather_code'][j]
             
         scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
         
@@ -178,11 +184,6 @@ while True:
             strip.set_pixel(i, (255 * (1 - scale), 255, 0))
     strip.show()
     
-    temp = data['hourly']['temperature_2m'][j]
-    date = data['hourly']['time'][j][5:10]
-    date_time = data['hourly']['time'][j][11:]
-    
-    weather_code = data['hourly']['weather_code'][j]
     show_small_leds(weather_code)
     
     if selection == 1:

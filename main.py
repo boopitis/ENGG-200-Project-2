@@ -71,6 +71,7 @@ url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&lon
 print(url)
 r = urequests.get(url)
 data = r.json()
+r.close()
 
 # f = open('data.json')
 # data = json.load(f)
@@ -122,6 +123,7 @@ def update_data():
     url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
     r = urequests.get(url)
     data = r.json()
+    r.close()
     
 def get_scale(parameter):
     max_value = data['hourly'][parameter][0]
@@ -167,6 +169,14 @@ while True:
         else:
             j = i + offset - 164
             
+        if i == 0:
+            temp = data['hourly']['temperature_2m'][j]
+            date = data['hourly']['time'][j][5:10]
+            date_time = data['hourly']['time'][j][11:]
+            weather_code = data['hourly']['weather_code'][j]
+            
+        scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
+            
         scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
         
         if scale <= (1/5):
@@ -181,11 +191,6 @@ while True:
             strip.set_pixel(i, (255 * (1 - scale), 255, 0))
     strip.show()
     
-    temp = data['hourly']['temperature_2m'][j]
-    date = data['hourly']['time'][j][5:10]
-    date_time = data['hourly']['time'][j][11:]
-    
-    weather_code = data['hourly']['weather_code'][j]
     show_small_leds(weather_code)
     
     if selection == 1:
@@ -232,6 +237,3 @@ while True:
         offset = 0
         
     time.sleep(0.5)
-
-# We need to close the response so that the Pi Pico does not crash
-r.close()
