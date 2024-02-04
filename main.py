@@ -1,3 +1,4 @@
+
 from machine import Pin, I2C, ADC
 from neopixel import Neopixel
 from lcd_api import LcdApi
@@ -6,7 +7,7 @@ import neopixel
 import urequests
 import time
 import network
-# import json
+import json
 
 def connect(ssid, wait, password=0):
     # Connect to WLAN
@@ -52,6 +53,8 @@ button = Pin(5, Pin.IN, Pin.PULL_DOWN)
 
 latitude = 51.04
 longitude = -114.07
+# latitude = -33.75
+# longitude = 151.13
 
 try:
     connect('HoopCafeMain', 25, 'Glynster73')
@@ -68,6 +71,9 @@ url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&lon
 print(url)
 r = urequests.get(url)
 data = r.json()
+
+# f = open('data.json')
+# data = json.load(f)
 
 cur_option = 0
 def menu():
@@ -89,6 +95,7 @@ def menu():
             return option
         
         cur_option = option
+        time.sleep(0.25)
 
 def show_small_leds(weather_code):
     if weather_code in (0, 1):
@@ -137,9 +144,9 @@ def weather(code):
                '', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', 'Fog', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', 'Slight Snow Fall', '', 'Moderate Snowfall', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
+               '', 'Slight Rain', '', '', '', '', '', '', '', '',
+               '', 'Slight Snow', '', 'Moderate Snow', '', '', '', '', '', '',
+               'Slight Showers', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',]
     
     return weather[code]
@@ -211,6 +218,8 @@ while True:
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'{weather(weather_code)}')
+        lcd.move_to(0,1)
+        lcd.putstr(f'{date} {date_time}')
     elif selection == 4:
         lcd.clear()
         strip.fill((0,0,0))

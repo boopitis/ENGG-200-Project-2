@@ -92,6 +92,7 @@ def menu():
             return option
         
         cur_option = option
+        time.sleep(0.25)
 
 def show_small_leds(weather_code):
     if weather_code in (0, 1):
@@ -140,9 +141,9 @@ def weather(code):
                '', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', 'Fog', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', 'Slight Snow Fall', '', 'Moderate Snowfall', '', '', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
+               '', 'Slight Rain', '', '', '', '', '', '', '', '',
+               '', 'Slight Snow', '', 'Moderate Snow', '', '', '', '', '', '',
+               'Slight Showers', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',]
     
     return weather[code]
@@ -151,7 +152,7 @@ min_temp = get_scale('temperature_2m')[0]
 temp_diff = get_scale('temperature_2m')[1]
 
 offset = 0
-selection = 1
+selection = 3
 while True:
     
     if button.value():
@@ -214,6 +215,8 @@ while True:
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'{weather(weather_code)}')
+        lcd.move_to(0,1)
+        lcd.putstr(f'{date} {date_time}')
     elif selection == 4:
         lcd.clear()
         strip.fill((0,0,0))
