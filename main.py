@@ -1,4 +1,3 @@
-
 from machine import Pin, I2C, ADC
 from neopixel import Neopixel
 from lcd_api import LcdApi
@@ -24,6 +23,11 @@ def connect(ssid, wait, password=0):
         print(f'Waiting for connection to {ssid}')
         count += 1
         time.sleep(1)
+        
+    if wlan.isconnected() == False:
+        exit()
+    else:
+        print('Connected.')
 
 # initialize LCD
 I2C_ADDR     = 63
@@ -53,18 +57,23 @@ button = Pin(5, Pin.IN, Pin.PULL_DOWN)
 
 latitude = 51.04
 longitude = -114.07
-# latitude = -33.75
-# longitude = 151.13
+
+# custom characters
+lcd.custom_char(0, bytearray([
+0x02,
+0x05,
+0x02,
+0x00,
+0x00,
+0x00,
+0x00,
+0x00
+        ]))
 
 try:
     connect('HoopCafeMain', 25, 'Glynster73')
 except KeyboardInterrupt:
     machine.reset()
-
-if network.WLAN(network.STA_IF).isconnected() == False:
-    exit()
-else:
-    print('Connected. End of code.')
     
 # initialize data
 url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
@@ -157,25 +166,23 @@ min_temp = get_scale('temperature_2m')[0]
 temp_diff = get_scale('temperature_2m')[1]
 
 offset = 0
-selection = 1
+selection = 3
 while True:
     
     if button.value():
         selection = menu()
     
     for i in range(30):
-        if offset < (164 - i):
+        if offset < (168 - i):
             j = i + offset
         else:
-            j = i + offset - 164
+            j = i + offset - 168
             
         if i == 0:
             temp = data['hourly']['temperature_2m'][j]
             date = data['hourly']['time'][j][5:10]
             date_time = data['hourly']['time'][j][11:]
             weather_code = data['hourly']['weather_code'][j]
-            
-        scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
             
         scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
         
@@ -197,6 +204,8 @@ while True:
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'Temp: {temp}')
+        lcd.putchar(chr(0))
+        lcd.putstr('C')
         lcd.move_to(0,1)
         lcd.putstr(f'{date} {date_time}')
     elif selection == 2:
@@ -231,7 +240,7 @@ while True:
         break
         
     # print(offset)
-    if offset < 163:
+    if offset < 167:
         offset += 1
     else:
         offset = 0
