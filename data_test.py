@@ -210,7 +210,7 @@ while True:
             longitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
             if button.value():
                 break
-        update_date()
+        update_data()
     elif selection == 3:
         lcd.clear()
         lcd.move_to(0,0)
