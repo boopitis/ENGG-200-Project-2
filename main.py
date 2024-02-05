@@ -53,7 +53,7 @@ adc = ADC(Pin(26))
 pot_max = 65535
 
 # initialize button
-button = Pin(5, Pin.IN, Pin.PULL_DOWN)
+button = Pin(5, Pin.IN, Pin.PULL_UP)
 
 latitude = 51.04
 longitude = -114.07
@@ -87,9 +87,11 @@ r.close()
 
 cur_option = 0
 def menu():
+    global cur_option
     num_options = 4
     
     while True:
+        time.sleep(0.1)
         option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
         
         options = ('Temp/Date', 'Change Lat/Long', 'Weather Code', 'Exit', '')
@@ -101,11 +103,10 @@ def menu():
             lcd.move_to(0,1)
             lcd.putstr(f'{options[option]}')
         
-        if button.value():
+        if button.value() == 0:
             return option
         
         cur_option = option
-        time.sleep(0.25)
 
 def show_small_leds(weather_code):
     if weather_code in (0, 1):
@@ -168,8 +169,8 @@ temp_diff = get_scale('temperature_2m')[1]
 offset = 0
 selection = 3
 while True:
-    
-    if button.value():
+    time.sleep(0.1)
+    if button.value() == 0:
         selection = menu()
     
     for i in range(30):
@@ -216,7 +217,7 @@ while True:
             lcd.move_to(0,1)
             lcd.putstr(f'Long: {longitude}')
             latitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
-            if button.value():
+            if button.value() == 0:
                 break
         while True:
             lcd.clear()
@@ -225,7 +226,7 @@ while True:
             lcd.move_to(0,1)
             lcd.putstr(f'Long: {longitude}')
             longitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
-            if button.value():
+            if button.value() == 0:
                 break
         update_data()
     elif selection == 3:
