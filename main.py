@@ -23,44 +23,6 @@ def connect(ssid, wait, password=0):
         print(f'Waiting for connection to {ssid}')
         count += 1
         time.sleep(1)
-<<<<<<< HEAD
-
-try:
-    connect('airuc-guest', 1)
-except KeyboardInterrupt:
-    machine.reset()
-
-if network.WLAN(network.STA_IF).isconnected() == False:
-    try:
-        connect('Toast', 10, '6bh5bmrc3s')
-    except KeyboardInterrupt:
-        machine.reset()
-    
-print('Connected. End of code.')
-
-r = urequests.get("https://api.open-meteo.com/v1/forecast?latitude=51.04&longitude=-114.07&hourly=temperature_2m&timezone=auto")
-
-data = r.json()
-
-# Most APIs will return JSON, which acts like a Python dictionary
-
-data_dict = {}
-
-for index, date_time in enumerate(data['hourly']['time']):
-    data_dict[date_time] = data['hourly']['temperature_2m'][index]
-
-print(data_dict)
-
-max_temp = -100
-max_temp_index = -1
-min_temp = 100
-min_temp_index = -1
-for index, temp in enumerate(data['hourly']['temperature_2m']):
-    if temp > max_temp:
-        max_temp = temp
-        max_temp_index = index
-=======
->>>>>>> main
         
     if wlan.isconnected() == False:
         exit()
@@ -109,7 +71,7 @@ lcd.custom_char(0, bytearray([
         ]))
 
 try:
-    connect('HoopCafeMain', 25, 'Glynster73')
+    connect('Toast', 10, '6bh5bmrc3s')
 except KeyboardInterrupt:
     machine.reset()
     
