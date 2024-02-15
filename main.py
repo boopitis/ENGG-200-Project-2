@@ -39,6 +39,7 @@ def connect(ssid, password):
     wlan.connect(ssid, password) # ADD PASSWORD IF NEEDED
     
     count = 1
+    offset = 0
     while wlan.isconnected() == False:
         print(f'Waiting for connection to {ssid}')
         lcd.clear()
@@ -46,8 +47,35 @@ def connect(ssid, password):
         lcd.putstr(f'Connecting..({count})')
         lcd.move_to(0,1)
         lcd.putstr(f'{ssid}')
+        
+        for i in list(range(numpix))[::-1]:
+            if offset < (11 - i):
+                j = i + offset
+            else:
+                j = i + offset - 11
+                    
+            scale = (j+1)/11
+            
+            if scale <= (1/5):
+                strip.set_pixel(i, (0, 255 * (1 - scale * 5), 255))
+            elif scale <= (2/5):
+                strip.set_pixel(i, (255 * (scale - 0.2) * 5, 0, 255))
+            elif scale <= (3/5):
+                strip.set_pixel(i, (255, 0, 255 * (1 - (scale - 0.4) * 5)))
+            elif scale <= (4/5):
+                strip.set_pixel(i, (255, 255 * (scale - 0.6) * 5, 0))
+            else:
+                strip.set_pixel(i, (255 * (1 - (scale - 0.8) * 5), 255, 0))
+            
+            time.sleep(1/11)
+            strip.show()
+             
+        if offset < 10:
+            offset += 1
+        else:
+            offset = 0
+        
         count += 1
-        time.sleep(1)
         
 try:
     connect('HoopCafeBMT2.4G', 'Glynster73')
@@ -161,16 +189,16 @@ def off():
 offset = 0
 while True:
     time.sleep(0.5)
-    
     if button.value() == 0:
         selection = menu()
     
-    for i in range(numpix):
+    for i in list(range(numpix))[::-1]:
+        
         if offset < (168 - i):
             j = i + offset
         else:
             j = i + offset - 168
-            
+        
         if i == 0:
             temp = data['hourly']['temperature_2m'][j]
             date = data['hourly']['time'][j][5:10]
@@ -178,12 +206,12 @@ while True:
             weather_code = data['hourly']['weather_code'][j]
             wind_speed = data['hourly']['wind_speed_10m'][j]
             wind_direction = data['hourly']['wind_direction_10m'][j]
-
+        
         if selection == 2:
             min_wind_speed = get_scale('wind_speed_10m')[0]
             wind_speed_diff = get_scale('wind_speed_10m')[1]
-            scale = (data['hourly']['wind_speed_10m'][j] - min_wind_speed) / wind_speed_diff
-        if selection == 3:
+            scale = (data['hourly']['wind_speed_10m'][j] - min_wind_speed) / wind_speed_diff     
+        elif selection == 3:
             min_weather_code = get_scale('weather_code')[0]
             weather_code_diff = get_scale('weather_code')[1]
             scale = (data['hourly']['weather_code'][j] - min_weather_code) / weather_code_diff
@@ -195,14 +223,16 @@ while True:
         if scale <= (1/5):
             strip.set_pixel(i, (0, 255 * (1 - scale * 5), 255))
         elif scale <= (2/5):
-            strip.set_pixel(i, (255 * scale * 5/2, 0, 255))
+            strip.set_pixel(i, (255 * (scale - 0.2) * 5, 0, 255))
         elif scale <= (3/5):
-            strip.set_pixel(i, (255, 0, 255 * (1 - scale * 5/3)))
+            strip.set_pixel(i, (255, 0, 255 * (1 - (scale - 0.4) * 5)))
         elif scale <= (4/5):
-            strip.set_pixel(i, (255, 255 * scale * 5/4, 0))
+            strip.set_pixel(i, (255, 255 * (scale - 0.6) * 5, 0))
         else:
-            strip.set_pixel(i, (255 * (1 - scale), 255, 0))
-    
+            strip.set_pixel(i, (255 * (1 - (scale - 0.8) * 5), 255, 0))
+        time.sleep(0.5/numpix)
+        strip.show()
+        
     if selection == 1:
         lcd.clear()
         lcd.move_to(0,0)
@@ -265,8 +295,6 @@ while True:
     elif selection == 7:
         off()
         selection = menu()
-        
-    strip.show()
     
     # print(offset)
     if offset < 167:
