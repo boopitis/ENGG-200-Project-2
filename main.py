@@ -79,6 +79,7 @@ def menu():
     
     while True:
         time.sleep(0.1)
+        time.sleep(0.1)
         option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
         
         options = ('Temp/Date', 'Change Lat/Long', 'Weather Code', 'Brightness','Exit', '')
@@ -90,6 +91,7 @@ def menu():
             lcd.move_to(0,1)
             lcd.putstr(f'{options[option]}')
         
+        if button.value() == 0:
         if button.value() == 0:
             return option
         
