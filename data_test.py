@@ -154,8 +154,8 @@ def weather(code):
                '', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', 'Fog', '', '', '', '',
-               '', '', '', '', '', '', '', '', '', '',
-               '', 'Slight Rain', '', '', '', '', '', '', '', '',
+               '', 'Light Drizzle', '', 'Moderate Drizzle', '', '', '', '', '', '',
+               '', 'Slight Rain', '', 'Moderate Rain', '', '', '', '', '', '',
                '', 'Slight Snow', '', 'Moderate Snow', '', '', '', '', '', '',
                'Slight Showers', '', '', '', '', '', '', '', '', '',
                '', '', '', '', '', '', '', '', '', '',]
@@ -166,7 +166,7 @@ min_temp = get_scale('temperature_2m')[0]
 temp_diff = get_scale('temperature_2m')[1]
 
 offset = 0
-selection = 3
+selection = 1
 while True:
     
     if button.value():
@@ -245,4 +245,4 @@ while True:
     else:
         offset = 0
         
-    time.sleep(0.1)
+    time.sleep(0.5)
