@@ -9,37 +9,6 @@ import network
 import json
 import sys
 
-def connect(ssid, password):
-    # Connect to WLAN
-    # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    wlan.connect(ssid, password) # ADD PASSWORD IF NEEDED
-    
-    while wlan.isconnected() == False:
-        print(f'Waiting for connection to {ssid}')
-        time.sleep(1)
-        
-try:
-    connect('HoopCafeMain', 'Glynster73')
-except KeyboardInterrupt:
-    sys.exit()
-
-print('Connected')
-
-# initialize data
-latitude = 51.04
-longitude = -114.07
-url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
-print(url)
-r = urequests.get(url)
-data = r.json()
-r.close()
-print(data)
-
-# f = open('data.json')
-# data = json.load(f)
-
 # initialize LCD
 I2C_ADDR     = 63
 I2C_NUM_ROWS = 2
@@ -60,6 +29,48 @@ pot_max = 65535
 
 # initialize button
 button = Pin(14, Pin.IN, Pin.PULL_UP)
+button_pressed = False
+
+def connect(ssid, password):
+    # Connect to WLAN
+    # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    wlan.connect(ssid, password) # ADD PASSWORD IF NEEDED
+    
+    count = 1
+    while wlan.isconnected() == False:
+        print(f'Waiting for connection to {ssid}')
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'Connecting..({count})')
+        lcd.move_to(0,1)
+        lcd.putstr(f'{ssid}')
+        count += 1
+        time.sleep(1)
+        
+try:
+    connect('HoopCafeBMT2.4G', 'Glynster73')
+except KeyboardInterrupt:
+    sys.exit()
+
+print('Connected')
+
+# initialize data
+latitude = 51.04
+longitude = -114.07
+lcd.clear()
+lcd.move_to(0,0)
+lcd.putstr(f'Recieving Data..')
+url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude)+ '&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto'
+print(url)
+r = urequests.get(url)
+data = r.json()
+r.close()
+print(data)
+
+# f = open('data.json')
+# data = json.load(f)
 
 # custom characters
 lcd.custom_char(0, bytearray([
@@ -74,15 +85,14 @@ lcd.custom_char(0, bytearray([
         ]))
 
 def menu():
-    num_options = 5
+    num_options = 7
     cur_option = 0
     
     while True:
         time.sleep(0.1)
-        time.sleep(0.1)
         option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
         
-        options = ('Temp/Date', 'Change Lat/Long', 'Weather Code', 'Brightness','Exit', '')
+        options = ('Temperature', 'Wind Speed', 'Weather Code', 'Change Lat/Long','Brightness', 'Update', 'Power Off', '')
         
         if option != cur_option:
             lcd.clear()
@@ -92,14 +102,17 @@ def menu():
             lcd.putstr(f'{options[option]}')
         
         if button.value() == 0:
-        if button.value() == 0:
             return option
         
-        print(adc.read_u16())
         cur_option = option
         
 def update_data():
-    url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude) + '&hourly=temperature_2m,weather_code&timezone=auto'
+    lcd.clear()
+    lcd.move_to(0,0)
+    lcd.putstr(f'Recieving Data..')
+    
+    url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude)+ '&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto'
+    print(url)
     r = urequests.get(url)
     data = r.json()
     r.close()
@@ -135,11 +148,17 @@ def weather(code):
     
     return weather[code]
 
-min_temp = get_scale('temperature_2m')[0]
-temp_diff = get_scale('temperature_2m')[1]
+selection = menu()
+
+def off():
+    lcd.clear()
+    strip.fill((0,0,0))
+    strip.show()
+    while True:
+        if button.value() == 0:
+            break
 
 offset = 0
-selection = menu()
 while True:
     time.sleep(0.5)
     
@@ -157,8 +176,21 @@ while True:
             date = data['hourly']['time'][j][5:10]
             date_time = data['hourly']['time'][j][11:]
             weather_code = data['hourly']['weather_code'][j]
-            
-        scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
+            wind_speed = data['hourly']['wind_speed_10m'][j]
+            wind_direction = data['hourly']['wind_direction_10m'][j]
+
+        if selection == 2:
+            min_wind_speed = get_scale('wind_speed_10m')[0]
+            wind_speed_diff = get_scale('wind_speed_10m')[1]
+            scale = (data['hourly']['wind_speed_10m'][j] - min_wind_speed) / wind_speed_diff
+        if selection == 3:
+            min_weather_code = get_scale('weather_code')[0]
+            weather_code_diff = get_scale('weather_code')[1]
+            scale = (data['hourly']['weather_code'][j] - min_weather_code) / weather_code_diff
+        else:
+            min_temp = get_scale('temperature_2m')[0]
+            temp_diff = get_scale('temperature_2m')[1]
+            scale = (data['hourly']['temperature_2m'][j] - min_temp) / temp_diff
         
         if scale <= (1/5):
             strip.set_pixel(i, (0, 255 * (1 - scale * 5), 255))
@@ -170,7 +202,6 @@ while True:
             strip.set_pixel(i, (255, 255 * scale * 5/4, 0))
         else:
             strip.set_pixel(i, (255 * (1 - scale), 255, 0))
-    strip.show()
     
     if selection == 1:
         lcd.clear()
@@ -183,6 +214,23 @@ while True:
         if button.value() == 0:
             selection = menu()
     elif selection == 2:
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'{wind_speed}km/h {wind_direction}')
+        lcd.putchar(chr(0))
+        lcd.move_to(0,1)
+        lcd.putstr(f'{date} {date_time}')
+        if button.value() == 0:
+            selection = menu()
+    elif selection == 3:
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'{weather(weather_code)}')
+        lcd.move_to(0,1)
+        lcd.putstr(f'{date} {date_time}')
+        if button.value() == 0:
+            selection == menu()
+    elif selection == 4:
         while True:
             time.sleep(0.5)
             lcd.clear()
@@ -196,20 +244,12 @@ while True:
             lcd.clear()
             lcd.move_to(0,0)
             lcd.putstr(f'Long: {longitude}')
-            longitude = round(adc.read_u16() / pot_max * 360 - 90, 2)
+            longitude = round(adc.read_u16() / pot_max * 360 - 180, 2)
             if button.value() == 0:
                 break
         data = update_data()
         selection = menu()
-    elif selection == 3:
-        lcd.clear()
-        lcd.move_to(0,0)
-        lcd.putstr(f'{weather(weather_code)}')
-        lcd.move_to(0,1)
-        lcd.putstr(f'{date} {date_time}')
-        if button.value() == 0:
-            selection == menu()
-    elif selection == 4:
+    elif selection == 5:
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'Brightness:')
@@ -219,15 +259,17 @@ while True:
         strip.brightness(brightness)
         if button.value() == 0:
             selection == menu()
-    elif selection == 5:
-        break
+    elif selection == 6:
+        data = update_data()
+        selection = menu()
+    elif selection == 7:
+        off()
+        selection = menu()
+        
+    strip.show()
     
     # print(offset)
     if offset < 167:
         offset += 1
     else:
         offset = 0
-        
-lcd.clear()
-strip.fill((0,0,0))
-strip.show()
