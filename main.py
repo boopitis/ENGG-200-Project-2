@@ -9,6 +9,13 @@ import network
 import json
 import sys
 
+class str2(str):
+    def __repr__(self):
+        # Allow str.__repr__() to do the hard work, then
+        # remove the outer two characters, single quotes,
+        # and replace them with double quotes.
+        return ''.join(('"', super().__repr__()[1:-1], '"'))
+
 # initialize LCD
 I2C_ADDR     = 63
 I2C_NUM_ROWS = 2
@@ -31,17 +38,21 @@ pot_max = 65535
 button = Pin(14, Pin.IN, Pin.PULL_UP)
 button_pressed = False
 
-def connect(ssid, password):
+def connect(ssid, password=0):
     # Connect to WLAN
     # Connect function from https://projects.raspberrypi.org/en/projects/get-started-pico-w/2
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    wlan.connect(ssid, password) # ADD PASSWORD IF NEEDED
-    
+    if password != 0:
+        wlan.connect(ssid, password)
+    else:
+        wlan.connect(ssid)
+        
     count = 1
     offset = 0
-    while wlan.isconnected() == False:
-        print(f'Waiting for connection to {ssid}')
+    end = False
+    while wlan.isconnected() == False and end == False:
+        print(f'Waiting for connection to {ssid} ({count})')
         lcd.clear()
         lcd.move_to(0,0)
         lcd.putstr(f'Connecting..({count})')
@@ -67,6 +78,9 @@ def connect(ssid, password):
             else:
                 strip.set_pixel(i, (255 * (1 - (scale - 0.8) * 5), 255, 0))
             
+            if button.value() == 0:
+                end = True
+            
             time.sleep(1/11)
             strip.show()
              
@@ -74,31 +88,8 @@ def connect(ssid, password):
             offset += 1
         else:
             offset = 0
-        
+            
         count += 1
-        
-try:
-    connect('HoopCafeBMT2.4G', 'Glynster73')
-except KeyboardInterrupt:
-    sys.exit()
-
-print('Connected')
-
-# initialize data
-latitude = 51.04
-longitude = -114.07
-lcd.clear()
-lcd.move_to(0,0)
-lcd.putstr(f'Recieving Data..')
-url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude)+ '&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto'
-print(url)
-r = urequests.get(url)
-data = r.json()
-r.close()
-print(data)
-
-# f = open('data.json')
-# data = json.load(f)
 
 # custom characters
 lcd.custom_char(0, bytearray([
@@ -176,6 +167,196 @@ def weather(code):
     
     return weather[code]
 
+def startup_menu():
+    options = ('Select Wifi', 'Enter New Wifi', 'No Wifi', 'Remove Wifi', '')
+    num_options = 4
+    cur_option = 0
+
+    while True:
+        time.sleep(0.1)
+        option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
+        
+        if option != cur_option:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>{options[option - 1]}')
+            lcd.move_to(0,1)
+            lcd.putstr(f'{options[option]}')
+        
+        if button.value() == 0:
+            return option
+        
+        cur_option = option
+
+def keyboard():
+    options = ['A - M', 'N - Z', 'a-m', 'n-z', 'Numbers', 'Symbols','Done']
+    options.append('')
+    num_options = len(options) - 1
+    cur_option = 0
+    
+    while True:
+        time.sleep(0.1)
+        option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
+        
+        if option != cur_option:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>{options[option - 1]}')
+            lcd.move_to(0,1)
+            lcd.putstr(f'{options[option]}')
+        
+        if button.value() == 0:
+            return option
+        
+        cur_option = option
+
+def write(selection):
+    if selection == 1:
+        options = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']
+    elif selection == 2:
+        options = ['N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    elif selection == 3:
+        options = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
+    elif selection == 4:
+        options = ['n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    elif selection == 5:
+        options = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    elif selection == 6:
+        options = ['.', '-', '_']
+    elif selection == 7:
+        return -1
+    options.append('')
+    num_options = len(options) - 1
+    cur_option = 0
+    
+    while True:
+        time.sleep(0.1)
+        option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
+        
+        if option != cur_option:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'{''.join(options)}')
+            lcd.move_to(option - 1,1)
+            lcd.putstr(f'^')
+        
+        if button.value() == 0:
+            return options[option - 1]
+        
+        cur_option = option
+    
+f = open('wifi.json')
+wifi_data = json.load(f)
+def select_wifi():
+    num_options = len(wifi_data['ssid'])
+    cur_option = 0
+    
+    while True:
+        time.sleep(0.1)
+        option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
+        
+        options = list(wifi_data['ssid'])
+        options.append('')
+        
+        if option != cur_option:
+            lcd.clear()
+            lcd.move_to(0,0)
+            lcd.putstr(f'>{options[option - 1]}')
+            lcd.move_to(0,1)
+            lcd.putstr(f'{options[option]}')
+        
+        if button.value() == 0:
+            return option
+        
+        cur_option = option
+        
+while True:
+    selection = startup_menu()
+    if selection == 1:
+        selection = select_wifi() - 1
+        try:
+            if wifi_data['password'][selection] != '':
+                print(wifi_data['ssid'][selection])
+                print(wifi_data['password'][selection])
+                connect(wifi_data['ssid'][selection], wifi_data['password'][selection])
+            else:
+                print(wifi_data['ssid'][selection])
+                connect(wifi_data['ssid'][selection])
+        except KeyboardInterrupt:
+            sys.exit()
+        if network.WLAN(network.STA_IF).isconnected() == True:
+            break
+    elif selection == 2:
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'Enter ssid')
+        time.sleep(0.5)
+        
+        while True:
+            if button.value() == 0:
+                break
+            
+        end = False
+        ssid = ''
+        while end == False:
+            char = write(keyboard())
+            if char == -1:
+                end = True
+            else:
+                ssid = ssid + char
+                print(ssid)
+                
+        lcd.clear()
+        lcd.move_to(0,0)
+        lcd.putstr(f'Enter password')
+        time.sleep(0.5)
+        
+        while True:
+            if button.value() == 0:
+                break
+            
+        end = False
+        password = ''
+        while end == False:
+            char = write(keyboard())
+            if char == -1:
+                end = True
+            else:
+                password = password + char
+                print(password)
+        
+        wifi_data['ssid'].append(ssid)
+        wifi_data['password'].append(password)
+        
+        with open('wifi.json', "w") as f:
+            f.write(json.dumps(wifi_data))    
+    elif selection == 4:
+        selection = select_wifi() - 1
+        wifi_data['ssid'].pop(selection)
+        wifi_data['password'].pop(selection)
+        with open('wifi.json', "w") as f:
+            f.write(json.dumps(wifi_data))
+    else:
+        f = open('data.json')
+        data = json.load(f)
+        break
+    
+if network.WLAN(network.STA_IF).isconnected() == True:
+    print('Connected')
+    
+    # initialize data
+    latitude = 51.04
+    longitude = -114.07
+    lcd.clear()
+    lcd.move_to(0,0)
+    lcd.putstr(f'Recieving Data..')
+    url = 'https://api.open-meteo.com/v1/forecast?latitude=' + str(latitude) + '&longitude=' + str(longitude)+ '&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto'
+    print(url)
+    r = urequests.get(url)
+    data = r.json()
+    r.close()
+    print(data)
+        
 selection = menu()
 
 def off():
