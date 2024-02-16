@@ -175,7 +175,6 @@ def startup_menu():
     while True:
         time.sleep(0.1)
         option = round(adc.read_u16() / pot_max * (num_options - 1)) + 1
-        
         if option != cur_option:
             lcd.clear()
             lcd.move_to(0,0)
@@ -370,8 +369,6 @@ def off():
 offset = 0
 while True:
     time.sleep(0.5)
-    if button.value() == 0:
-        selection = menu()
     
     for i in list(range(numpix))[::-1]:
         
@@ -413,6 +410,8 @@ while True:
             strip.set_pixel(i, (255 * (1 - (scale - 0.8) * 5), 255, 0))
         time.sleep(0.5/numpix)
         strip.show()
+        if button.value() == 0:
+            selection = menu()
         
     if selection == 1:
         lcd.clear()
@@ -469,7 +468,7 @@ while True:
         brightness = round(adc.read_u16() / pot_max * 255, 0)
         strip.brightness(brightness)
         if button.value() == 0:
-            selection == menu()
+            selection = menu()
     elif selection == 6:
         data = update_data()
         selection = menu()
