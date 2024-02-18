@@ -413,6 +413,12 @@ while True:
         if button.value() == 0:
             selection = menu()
         
+    # print(offset)
+    if offset < 167:
+        offset += 1
+    else:
+        offset = 0
+    
     if selection == 1:
         lcd.clear()
         lcd.move_to(0,0)
@@ -439,7 +445,7 @@ while True:
         lcd.move_to(0,1)
         lcd.putstr(f'{date} {date_time}')
         if button.value() == 0:
-            selection == menu()
+            selection = menu()
     elif selection == 4:
         while True:
             time.sleep(0.5)
@@ -459,6 +465,7 @@ while True:
                 break
         data = update_data()
         selection = menu()
+        offset = 0
     elif selection == 5:
         lcd.clear()
         lcd.move_to(0,0)
@@ -472,12 +479,7 @@ while True:
     elif selection == 6:
         data = update_data()
         selection = menu()
+        offset = 0
     elif selection == 7:
         off()
         selection = menu()
-    
-    # print(offset)
-    if offset < 167:
-        offset += 1
-    else:
-        offset = 0
